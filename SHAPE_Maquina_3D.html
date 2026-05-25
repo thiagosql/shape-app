@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHAPE FitGuide — Aplicação 3D em Máquina de Academia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#0b1120;
+    font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  canvas { display:block; }
+
+  .panel {
+    position:fixed;
+    background:rgba(15,23,42,.82);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;
+    backdrop-filter:blur(10px);
+    color:#e2e8f0;
+  }
+
+  #title { top:18px; left:18px; padding:16px 20px; max-width:350px; }
+  #title .tag { font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:#f97316; font-weight:700; }
+  #title h1 { font-size:18px; font-weight:900; margin:5px 0 4px; color:#fff; }
+  #title p  { font-size:11px; color:#94a3b8; line-height:1.6; }
+
+  #controls {
+    bottom:18px; left:50%; transform:translateX(-50%);
+    padding:10px 12px;
+    display:flex; gap:8px; align-items:center;
+    flex-wrap:wrap; justify-content:center; max-width:94vw;
+  }
+  .btn {
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.14);
+    color:#cbd5e1;
+    font-size:11px; font-weight:600;
+    padding:8px 14px; border-radius:20px;
+    cursor:pointer; transition:.15s; white-space:nowrap;
+  }
+  .btn:hover { background:rgba(249,115,22,.2); border-color:#f97316; color:#fff; }
+  .btn.active { background:#f97316; border-color:#f97316; color:#fff; }
+
+  #legend { top:18px; right:18px; padding:14px 16px; max-width:240px; }
+  #legend h3 { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#f97316; margin-bottom:10px; }
+  .leg { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
+  .leg .dot { width:9px; height:9px; border-radius:50%; margin-top:3px; flex-shrink:0; }
+  .leg .txt { font-size:10px; color:#cbd5e1; line-height:1.5; }
+  .leg .txt b { color:#fff; }
+
+  #hint { bottom:18px; right:18px; padding:9px 14px; font-size:10px; color:#64748b; }
+
+  #screen-hint {
+    position:fixed; top:16px; left:50%;
+    transform:translateX(-50%);
+    background:#f97316; color:#fff;
+    font-size:12px; font-weight:700;
+    padding:9px 18px; border-radius:22px;
+    opacity:0; transition:opacity .2s;
+    pointer-events:none; z-index:60;
+    box-shadow:0 6px 20px rgba(249,115,22,.55);
+  }
+
+  #loader {
+    position:fixed; inset:0;
+    background:#0b1120;
+    display:flex; align-items:center; justify-content:center;
+    color:#f97316; font-size:14px; font-weight:700;
+    z-index:50;
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">Carregando cena 3D…</div>
+
+<div id="title" class="panel">
+  <div class="tag">TP01 · IHC 2026-1 · Studio GS-Fit</div>
+  <h1>SHAPE FitGuide — demonstração</h1>
+  <p>Ciclo completo do app: o aluno chega à máquina, se identifica, treina as 3 séries, vê o resumo e o app volta à tela inicial. A tela do aparelho é o app real — clique nos botões dela para avançar.</p>
+  <p style="margin-top:8px;color:#f97316;font-weight:700;">⚠ Na 1ª série o boneco erra a postura sozinho: o dispositivo detecta, exibe a correção e retoma o treino automaticamente — sem precisar clicar. O botão "Simular erro" repete a demonstração.</p>
+</div>
+
+<div id="legend" class="panel">
+  <h3>Componentes do dispositivo</h3>
+  <div class="leg"><span class="dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e;"></span><span class="txt"><b>Faixa de LED RGB</b> — feedback de postura em tempo real</span></div>
+  <div class="leg"><span class="dot" style="background:#f8fafc;"></span><span class="txt"><b>Tela touchscreen</b> — guia o exercício e conta repetições</span></div>
+  <div class="leg"><span class="dot" style="background:#f97316;"></span><span class="txt"><b>Botões físicos laterais</b> — Home, Start/Pause, Volume</span></div>
+  <div class="leg"><span class="dot" style="background:#0a0d14;border:1px solid #475569;"></span><span class="txt"><b>Câmera + sensor de movimento</b> — leitura automática de postura</span></div>
+  <div class="leg"><span class="dot" style="background:#64748b;"></span><span class="txt"><b>Braço de suporte</b> — fixa a tela à torre da máquina</span></div>
+</div>
+
+<div id="controls" class="panel">
+  <button class="btn active" id="b-orbit">↻ Órbita</button>
+  <button class="btn" id="b-device">🔍 Focar na tela</button>
+  <button class="btn" id="b-full">🏋 Visão geral</button>
+  <button class="btn" id="b-error">⚠ Simular erro de postura</button>
+  <button class="btn" id="b-mirror">🖥 Abrir tela do app</button>
+  <button class="btn" id="b-restart">↺ Reiniciar demo</button>
+</div>
+
+<div id="hint" class="panel">Arraste: girar · Scroll: zoom · Botão direito: mover</div>
+
+<div id="screen-hint">👆 Clique nos botões da tela para interagir</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ═══════════════════════════════════════════
+//  SCENE
+// ═══════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1120);
+scene.fog = new THREE.Fog(0x0b1120, 9, 22);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(3.8, 2.4, 4.4);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 1.2, 0.1);
+controls.maxPolarAngle = Math.PI/2 + 0.05;
+controls.minDistance = 1.5;
+controls.maxDistance = 13;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.8;
+
+// ═══════════════════════════════════════════
+//  LIGHTING
+// ═══════════════════════════════════════════
+scene.add(new THREE.HemisphereLight(0x9db9d9, 0x1a1f2e, 0.7));
+
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.set(4, 7, 5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -7; key.shadow.camera.right = 7;
+key.shadow.camera.top = 7;   key.shadow.camera.bottom = -7;
+key.shadow.bias = -0.0004;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x88aaff, 0.6);
+fill.position.set(-5, 4, -3);
+scene.add(fill);
+
+const accent = new THREE.PointLight(0xf97316, 0.8, 8);
+accent.position.set(-1.5, 2, 2);
+scene.add(accent);
+
+// ═══════════════════════════════════════════
+//  FLOOR
+// ═══════════════════════════════════════════
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(11, 64),
+  new THREE.MeshStandardMaterial({ color:0x161d2e, roughness:0.95, metalness:0.0 })
+);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+const grid = new THREE.GridHelper(20, 40, 0x2a3550, 0x1c2438);
+grid.position.y = 0.002;
+scene.add(grid);
+
+// ═══════════════════════════════════════════
+//  MATERIALS & HELPERS
+// ═══════════════════════════════════════════
+const matMetal  = new THREE.MeshStandardMaterial({ color:0x3a4252, roughness:0.45, metalness:0.85 });
+const matDark   = new THREE.MeshStandardMaterial({ color:0x1f2532, roughness:0.6,  metalness:0.7 });
+const matPad    = new THREE.MeshStandardMaterial({ color:0x141821, roughness:0.9,  metalness:0.05 });
+const matOrange = new THREE.MeshStandardMaterial({ color:0xf97316, roughness:0.4,  metalness:0.3 });
+const matCable  = new THREE.MeshStandardMaterial({ color:0x0d0f14, roughness:0.7,  metalness:0.2 });
+
+function box(w,h,d,mat,x,y,z){
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+  m.position.set(x,y,z);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+function cyl(rt,rb,h,mat,x,y,z,seg=20){
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg), mat);
+  m.position.set(x,y,z);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+function rbox(w,h,d,r,mat){
+  const s = new THREE.Shape();
+  const x=-w/2, y=-h/2;
+  s.moveTo(x+r, y);
+  s.lineTo(x+w-r, y);   s.quadraticCurveTo(x+w, y, x+w, y+r);
+  s.lineTo(x+w, y+h-r); s.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  s.lineTo(x+r, y+h);   s.quadraticCurveTo(x, y+h, x, y+h-r);
+  s.lineTo(x, y+r);     s.quadraticCurveTo(x, y, x+r, y);
+  const g = new THREE.ExtrudeGeometry(s, { depth:d, bevelEnabled:true, bevelThickness:0.008, bevelSize:0.008, bevelSegments:2, steps:1 });
+  g.center();
+  const m = new THREE.Mesh(g, mat);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+// ═══════════════════════════════════════════
+//  MÁQUINA — Estação de musculação inteligente
+// ═══════════════════════════════════════════
+const machine = new THREE.Group();
+
+// plataforma base
+machine.add(box(1.3, 0.07, 2.3, matDark, 0, 0.085, 0));
+machine.add(box(1.36, 0.06, 0.26, matMetal, 0, 0.035,  1.0));
+machine.add(box(1.36, 0.06, 0.26, matMetal, 0, 0.035, -1.0));
+machine.add(box(1.16, 0.014, 2.1,
+  new THREE.MeshStandardMaterial({ color:0x12151d, roughness:0.7 }), 0, 0.122, 0));
+
+// carcaça do mecanismo
+machine.add(box(1.0, 0.42, 0.82, matDark, 0, 0.33, -0.52));
+const cover = box(1.04, 0.05, 0.92, matMetal, 0, 0.54, -0.52);
+cover.rotation.x = -0.32;
+machine.add(cover);
+machine.add(box(1.01, 0.03, 0.06, matOrange, 0, 0.40, -0.11));
+const ventMat = new THREE.MeshStandardMaterial({ color:0x05070b, roughness:0.85 });
+for (let i=0;i<5;i++) machine.add(box(0.66, 0.016, 0.012, ventMat, 0, 0.22 + i*0.042, -0.115));
+
+// torre vertical
+const tX = 0.18;
+machine.add(cyl(0.046,0.05, 2.05, matMetal, -tX, 1.12, -1.05));
+machine.add(cyl(0.046,0.05, 2.05, matMetal,  tX, 1.12, -1.05));
+const arch = new THREE.Mesh(new THREE.TorusGeometry(tX, 0.046, 12, 28, Math.PI), matMetal);
+arch.position.set(0, 2.14, -1.05);
+arch.castShadow = true;
+machine.add(arch);
+const pullBar = cyl(0.028,0.028, 0.30, matPad, 0, 1.95, -0.9);
+pullBar.rotation.z = Math.PI/2;
+machine.add(pullBar);
+machine.add(box(0.52, 0.13, 0.2, matDark, 0, 0.5, -0.96));
+
+// assento
+machine.add(box(0.4, 0.1, 0.56, matPad, 0, 0.52, 0.5));
+machine.add(cyl(0.05,0.06,0.46, matMetal, 0, 0.27, 0.5));
+machine.add(box(0.34, 0.06, 0.34, matDark, 0, 0.05, 0.5));
+
+// apoio para os pés
+const footPlate = box(0.46, 0.38, 0.06, matMetal, 0, 0.3, -0.06);
+footPlate.rotation.x = 0.3;
+machine.add(footPlate);
+machine.add(box(0.5, 0.05, 0.16, matDark, 0, 0.12, -0.04));
+
+// polia
+const pulleyR = cyl(0.05,0.05,0.06, matMetal, 0, 0.4, -0.04);
+pulleyR.rotation.x = Math.PI/2;
+machine.add(pulleyR);
+
+scene.add(machine);
+
+// ═══════════════════════════════════════════
+//  SHAPE FITGUIDE DEVICE
+// ═══════════════════════════════════════════
+const device = new THREE.Group();
+const DW = 0.40, DH = 0.54, DD = 0.048;
+
+const body = rbox(DW, DH, DD, 0.04, matDark);
+device.add(body);
+const bezel = rbox(DW-0.025, DH-0.025, DD+0.008, 0.035,
+  new THREE.MeshStandardMaterial({ color:0x05070b, roughness:0.45, metalness:0.4 }));
+device.add(bezel);
+
+// canvas usado como textura da tela
+const screenCanvas = document.createElement('canvas');
+screenCanvas.width = 600; screenCanvas.height = 800;
+const sctx = screenCanvas.getContext('2d');
+
+// ── estado geral do fluxo (o app + a cena) ──
+let flowState  = 'arriving';   // arriving | sitting | login | dashboard | exercise | correction | rest
+let repValue   = '0';
+let serie      = 1;
+let restTime   = 0;
+let scrDirty   = true;
+let exercising = false;
+let phaseTime  = 0;
+let hunch      = 0;
+let autoErrorDone = false;   // o erro de postura automático já ocorreu neste treino?
+let correctionT   = 0;       // tempo restante até a correção automática (s)
+let dispPhase     = 0;       // fase exibida do movimento (0 = relaxado/parado)
+const AUTO_ERROR_REP = 5;    // repetição em que o boneco erra a postura sozinho
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+
+function drawScreen(){
+  switch (flowState){
+    case 'arriving':
+    case 'sitting':
+    case 'getup':
+    case 'leaving':    return drawStandby();
+    case 'login':      return drawLogin();
+    case 'dashboard':  return drawDashboard();
+    case 'conclusion': return drawConclusion();
+    case 'correction': return drawCorrection();
+    case 'rest':       return drawRest();
+    default:           return drawExercise();
+  }
+}
+
+// ── TELA: INICIAL / STANDBY ──
+function drawStandby(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.textAlign='center';
+  c.fillStyle='#f97316'; c.font='900 78px Segoe UI, sans-serif';
+  c.fillText('SHAPE', W/2, 250);
+  c.fillStyle='#64748b'; c.font='600 24px Segoe UI';
+  c.fillText('FitGuide', W/2, 292);
+  c.strokeStyle='#f97316'; c.lineWidth=4;
+  c.beginPath(); c.arc(W/2, 470, 92, 0, Math.PI*2); c.stroke();
+  c.font='62px Segoe UI'; c.fillText('🏋', W/2, 492);
+  c.fillStyle='#e2e8f0'; c.font='bold 27px Segoe UI';
+  c.fillText('Bem-vindo ao Studio GS-Fit', W/2, 622);
+  c.fillStyle='#64748b'; c.font='20px Segoe UI';
+  c.fillText('Aproxime-se da máquina para começar', W/2, 660);
+  c.textAlign='left';
+}
+
+// ── TELA: IDENTIFICAÇÃO / LOGIN ──
+function drawLogin(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#1e293b'; c.fillRect(0,0,W,104);
+  c.textAlign='left';
+  c.fillStyle='#ffffff'; c.font='bold 28px Segoe UI'; c.fillText('Identificação', 28, 62);
+  c.textAlign='center';
+  c.fillStyle='#94a3b8'; c.font='21px Segoe UI';
+  c.fillText('Identifique-se para acessar', W/2, 188);
+  c.fillText('o seu treino personalizado', W/2, 218);
+  c.fillStyle='#1e293b'; roundRect(c,24,262,W-48,252,20); c.fill();
+  c.font='92px Segoe UI'; c.fillText('💳', W/2, 388);
+  c.fillStyle='#e2e8f0'; c.font='bold 25px Segoe UI';
+  c.fillText('Aproxime seu cartão', W/2, 440);
+  c.fillStyle='#64748b'; c.font='18px Segoe UI';
+  c.fillText('ou toque no botão abaixo para entrar', W/2, 474);
+  c.fillStyle='#f97316'; roundRect(c,24,560,W-48,92,16); c.fill();
+  c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI';
+  c.fillText('ENTRAR', W/2, 616);
+  c.textAlign='left';
+}
+
+// ── TELA: DASHBOARD / TREINO DO DIA ──
+function drawDashboard(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#1e293b'; c.fillRect(0,0,W,104);
+  c.textAlign='left';
+  c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI'; c.fillText('Olá, Ana! 👋', 28, 50);
+  c.fillStyle='#64748b'; c.font='18px Segoe UI';
+  c.fillText('Treino de hoje · Membros superiores', 28, 82);
+  // exercício atual
+  c.fillStyle='#1e293b'; roundRect(c,24,128,W-48,92,16); c.fill();
+  c.fillStyle='#f97316'; c.font='bold 23px Segoe UI'; c.fillText('▶ Remada Sentada', 44, 172);
+  c.fillStyle='#64748b'; c.font='17px Segoe UI';
+  c.fillText('3 séries · 12 repetições · agora', 44, 200);
+  // lista
+  const items=[['✓ Supino reto','concluído','#22c55e'],
+               ['Rosca direta','3 × 10','#64748b'],
+               ['Tríceps na polia','3 × 12','#64748b']];
+  let y=240;
+  for(const [n,d,col] of items){
+    c.fillStyle='#161e2e'; roundRect(c,24,y,W-48,62,12); c.fill();
+    c.textAlign='left'; c.fillStyle=(col==='#22c55e')?'#22c55e':'#cbd5e1';
+    c.font='bold 19px Segoe UI'; c.fillText(n, 44, y+38);
+    c.textAlign='right'; c.fillStyle='#64748b'; c.font='16px Segoe UI';
+    c.fillText(d, W-44, y+38);
+    y+=74;
+  }
+  c.textAlign='left';
+  c.fillStyle='rgba(249,115,22,0.10)'; roundRect(c,24,y+8,W-48,70,14); c.fill();
+  c.fillStyle='#fb923c'; c.font='18px Segoe UI';
+  c.fillText('💡 Mantenha-se hidratado durante o treino', 44, y+50);
+  // botão
+  c.fillStyle='#f97316'; roundRect(c,24,638,W-48,92,16); c.fill();
+  c.textAlign='center'; c.fillStyle='#ffffff'; c.font='bold 26px Segoe UI';
+  c.fillText('▶  INICIAR TREINO', W/2, 694);
+  c.textAlign='left';
+}
+
+// ── TELA: EXERCÍCIO ATIVO ──
+function drawExercise(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  // barra superior
+  c.fillStyle='#1e293b'; c.fillRect(0,0,W,104);
+  c.textAlign='left';
+  c.fillStyle='#ffffff'; c.font='bold 30px Segoe UI, sans-serif';
+  c.fillText('Remada Sentada', 28, 46);
+  c.fillStyle='#64748b'; c.font='19px Segoe UI, sans-serif';
+  c.fillText('Série ' + serie + ' de 3', 28, 76);
+  c.fillStyle='#22c55e'; c.font='bold 21px Segoe UI, sans-serif';
+  c.textAlign='right';
+  c.fillText('✓ Boa postura', W-26, 58);
+  c.textAlign='left';
+  // card ilustração
+  c.fillStyle='#1e293b'; roundRect(c, 24, 122, W-48, 208, 20); c.fill();
+  c.lineCap='round';
+  c.strokeStyle='#94a3b8'; c.lineWidth=6;
+  c.beginPath(); c.arc(372, 170, 22, 0, Math.PI*2); c.stroke();
+  c.beginPath(); c.moveTo(368, 206); c.lineTo(400, 230); c.stroke();
+  c.beginPath(); c.moveTo(400, 230); c.lineTo(298, 240); c.stroke();
+  c.beginPath(); c.moveTo(380, 272); c.lineTo(272, 264); c.stroke();
+  c.beginPath(); c.moveTo(272, 264); c.lineTo(240, 306); c.stroke();
+  c.strokeStyle='#22c55e'; c.lineWidth=9;
+  c.beginPath(); c.moveTo(368, 192); c.lineTo(380, 272); c.stroke();
+  c.strokeStyle='#475569'; c.lineWidth=7;
+  c.beginPath(); c.moveTo(362, 288); c.lineTo(446, 288); c.stroke();
+  c.strokeStyle='#f97316'; c.lineWidth=6;
+  c.beginPath(); c.moveTo(298, 240); c.lineTo(150, 258); c.stroke();
+  c.fillStyle='#f97316';
+  c.fillRect(286, 228, 16, 24);
+  c.fillRect(118, 230, 30, 56);
+  c.fillStyle='#22c55e'; c.font='bold 17px Segoe UI'; c.textAlign='left';
+  c.fillText('✓ Tronco', 402, 178);
+  c.fillText('   firme', 402, 199);
+  c.fillStyle='#f97316'; c.font='bold 16px Segoe UI'; c.textAlign='center';
+  c.fillText('Carga', 133, 218);
+  c.textAlign='left';
+  // card contadores
+  c.fillStyle='#1e293b'; roundRect(c, 24, 348, W-48, 168, 20); c.fill();
+  const cols=[
+    { x:128, val:repValue,      lbl:'REPS',  col:'#f97316' },
+    { x:300, val:String(serie), lbl:'SÉRIE', col:'#ffffff' },
+    { x:472, val:'12',          lbl:'META',  col:'#475569' },
+  ];
+  for(const o of cols){
+    c.textAlign='center';
+    c.fillStyle=o.col; c.font='bold 96px Segoe UI'; c.fillText(o.val, o.x, 452);
+    c.fillStyle='#64748b'; c.font='bold 18px Segoe UI'; c.fillText(o.lbl, o.x, 492);
+  }
+  c.strokeStyle='rgba(255,255,255,.07)'; c.lineWidth=2;
+  c.beginPath(); c.moveTo(214,378); c.lineTo(214,486); c.stroke();
+  c.beginPath(); c.moveTo(386,378); c.lineTo(386,486); c.stroke();
+  c.textAlign='left';
+  // card dica
+  c.fillStyle='rgba(34,197,94,0.10)'; roundRect(c, 24, 532, W-48, 88, 16); c.fill();
+  c.fillStyle='#4ade80'; c.font='20px Segoe UI';
+  c.fillText('💡 Puxe a manopla até o abdômen', 44, 568);
+  c.fillText('     mantendo o tronco firme e estável', 44, 596);
+  // progresso da série — encerra sozinha ao completar as repetições
+  c.fillStyle='#64748b'; c.font='bold 15px Segoe UI'; c.textAlign='left';
+  c.fillText('PROGRESSO DA SÉRIE', 28, 658);
+  c.fillStyle='#1e293b'; roundRect(c, 24, 672, W-48, 30, 15); c.fill();
+  const rp = Math.min(1, repNum/12);
+  if (rp > 0){ c.fillStyle='#f97316'; roundRect(c, 24, 672, Math.max(30,(W-48)*rp), 30, 15); c.fill(); }
+  c.fillStyle='#94a3b8'; c.font='15px Segoe UI'; c.textAlign='center';
+  c.fillText(repNum + ' de 12 repetições · o descanso inicia automaticamente', W/2, 742);
+  c.textAlign='left';
+}
+
+// ── TELA: CORREÇÃO DE POSTURA ──
+function drawCorrection(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#7f1d1d'; c.fillRect(0,0,W,104);
+  c.textAlign='left';
+  c.fillStyle='#ffffff'; c.font='bold 28px Segoe UI, sans-serif';
+  c.fillText('⚠ ATENÇÃO — Postura', 26, 48);
+  c.fillStyle='#fca5a5'; c.font='18px Segoe UI, sans-serif';
+  c.fillText('Remada Sentada  ·  TREINO PAUSADO', 26, 82);
+  c.fillStyle='rgba(239,68,68,0.12)'; roundRect(c, 24, 126, W-48, 152, 18); c.fill();
+  c.strokeStyle='#ef4444'; c.lineWidth=2; roundRect(c, 24, 126, W-48, 152, 18); c.stroke();
+  c.textAlign='center';
+  c.fillStyle='#f87171'; c.font='bold 27px Segoe UI';
+  c.fillText('Corrija sua postura!', W/2, 172);
+  c.fillStyle='#fecaca'; c.font='19px Segoe UI';
+  c.fillText('Você está arredondando as costas.', W/2, 212);
+  c.fillText('Endireite a coluna e puxe a manopla', W/2, 240);
+  c.fillText('com controle antes de continuar.', W/2, 268);
+  c.fillStyle='#1e293b'; roundRect(c, 24, 300, W-48, 322, 20); c.fill();
+  c.fillStyle='#ef4444'; c.font='bold 22px Segoe UI'; c.textAlign='center';
+  c.fillText('✗ Coluna curvada', W/2, 344);
+  c.lineCap='round'; c.lineJoin='round';
+  c.strokeStyle='#64748b'; c.lineWidth=7;
+  c.beginPath(); c.arc(345, 408, 24, 0, Math.PI*2); c.stroke();
+  c.beginPath(); c.moveTo(352, 430); c.lineTo(404, 452); c.stroke();
+  c.beginPath(); c.moveTo(404, 452); c.lineTo(258, 470); c.stroke();
+  c.beginPath(); c.moveTo(392, 512); c.lineTo(262, 502); c.stroke();
+  c.beginPath(); c.moveTo(262, 502); c.lineTo(224, 556); c.stroke();
+  c.strokeStyle='#475569'; c.lineWidth=8;
+  c.beginPath(); c.moveTo(360, 540); c.lineTo(470, 540); c.stroke();
+  c.strokeStyle='#ef4444'; c.lineWidth=13;
+  c.beginPath(); c.moveTo(392, 512); c.quadraticCurveTo(424, 448, 350, 428); c.stroke();
+  c.strokeStyle='#f97316'; c.lineWidth=6;
+  c.beginPath(); c.moveTo(258, 470); c.lineTo(126, 486); c.stroke();
+  c.fillStyle='#f97316'; c.fillRect(112, 478, 16, 22);
+  c.textAlign='left';
+  c.fillStyle='#22c55e'; roundRect(c, 24, 690, W-48, 86, 16); c.fill();
+  c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI'; c.textAlign='center';
+  c.fillText('✓  POSTURA CORRIGIDA', W/2, 742);
+  c.textAlign='left';
+}
+
+// ── TELA: DESCANSO ──
+function drawRest(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#1e3a8a'; c.fillRect(0,0,W,104);
+  c.textAlign='left';
+  c.fillStyle='#ffffff'; c.font='bold 28px Segoe UI'; c.fillText('Série ' + serie + ' de 3 concluída ✓', 26, 48);
+  c.fillStyle='#93c5fd'; c.font='18px Segoe UI';
+  c.fillText('Remada Sentada  ·  ❤ 96 bpm', 26, 82);
+  c.textAlign='center';
+  c.fillStyle='#64748b'; c.font='bold 24px Segoe UI'; c.fillText('DESCANSO', W/2, 196);
+  const sec=Math.max(0,Math.ceil(restTime));
+  c.fillStyle='#3b82f6'; c.font='bold 168px Segoe UI';
+  c.fillText('0:'+String(sec).padStart(2,'0'), W/2, 352);
+  c.fillStyle='#1e293b'; roundRect(c, 70, 392, W-140, 28, 14); c.fill();
+  const frac=Math.max(0,Math.min(1,restTime/20));
+  if(frac>0){ c.fillStyle='#3b82f6'; roundRect(c, 70, 392, (W-140)*frac, 28, 14); c.fill(); }
+  c.fillStyle='rgba(59,130,246,0.12)'; roundRect(c, 24, 452, W-48, 110, 16); c.fill();
+  c.fillStyle='#93c5fd'; c.font='22px Segoe UI';
+  c.fillText('💪 Respire fundo e hidrate-se.', W/2, 496);
+  c.fillText('Prepare-se para a próxima série!', W/2, 530);
+  c.fillStyle='#1e293b'; roundRect(c, 24, 588, W-48, 78, 14); c.fill();
+  c.textAlign='left';
+  c.fillStyle='#64748b'; c.font='bold 15px Segoe UI'; c.fillText('A SEGUIR', 44, 616);
+  c.fillStyle='#ffffff'; c.font='bold 22px Segoe UI';
+  c.fillText('Remada Sentada — Série ' + (serie+1) + ' de 3', 44, 646);
+  c.fillStyle='#f97316'; roundRect(c, 24, 690, W-48, 86, 16); c.fill();
+  c.textAlign='center'; c.fillStyle='#ffffff'; c.font='bold 26px Segoe UI';
+  c.fillText('▶  PULAR DESCANSO', W/2, 742);
+  c.textAlign='left';
+}
+
+// ── TELA: TREINO CONCLUÍDO ──
+function drawConclusion(){
+  const c=sctx,W=600,H=800;
+  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#5b21b6'; c.fillRect(0,0,W,104);
+  c.textAlign='left';
+  c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI'; c.fillText('Treino concluído', 26, 50);
+  c.fillStyle='#ddd6fe'; c.font='18px Segoe UI'; c.fillText('Remada Sentada · 3 séries', 26, 82);
+  c.textAlign='center';
+  c.font='84px Segoe UI'; c.fillText('🏆', W/2, 212);
+  c.fillStyle='#ffffff'; c.font='bold 30px Segoe UI'; c.fillText('Parabéns, Ana! 👏', W/2, 268);
+  c.fillStyle='#94a3b8'; c.font='19px Segoe UI';
+  c.fillText('Você completou o exercício do dia.', W/2, 300);
+  const stats=[['18','MIN'],['3','SÉRIES'],['96','KCAL']];
+  let sx=24;
+  for(const [v,l] of stats){
+    c.fillStyle='#1e293b'; roundRect(c,sx,328,170,118,16); c.fill();
+    c.textAlign='center';
+    c.fillStyle='#a855f7'; c.font='bold 54px Segoe UI'; c.fillText(v, sx+85, 396);
+    c.fillStyle='#64748b'; c.font='bold 16px Segoe UI'; c.fillText(l, sx+85, 426);
+    sx+=191;
+  }
+  c.textAlign='left';
+  c.fillStyle='#64748b'; c.font='bold 15px Segoe UI'; c.fillText('CONQUISTAS', 28, 490);
+  const ach=[['🔥','3 dias seguidos de treino'],['💪','Postura perfeita na série final']];
+  let ay=506;
+  for(const [ic,tx] of ach){
+    c.fillStyle='rgba(168,85,247,0.12)'; roundRect(c,24,ay,W-48,62,12); c.fill();
+    c.textAlign='left'; c.font='26px Segoe UI'; c.fillStyle='#ffffff'; c.fillText(ic, 46, ay+40);
+    c.fillStyle='#ddd6fe'; c.font='19px Segoe UI'; c.fillText(tx, 92, ay+39);
+    ay+=74;
+  }
+  c.fillStyle='#f97316'; roundRect(c,24,690,W-48,86,16); c.fill();
+  c.textAlign='center'; c.fillStyle='#ffffff'; c.font='bold 26px Segoe UI';
+  c.fillText('✓  FINALIZAR', W/2, 742);
+  c.textAlign='left';
+}
+
+drawScreen();
+
+const screenTex = new THREE.CanvasTexture(screenCanvas);
+screenTex.colorSpace = THREE.SRGBColorSpace;
+const screen = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.30, 0.40),
+  new THREE.MeshBasicMaterial({ map:screenTex })
+);
+screen.position.set(0, -0.025, DD/2 + 0.013);
+device.add(screen);
+
+// — Faixa de LED (acima da tela, sem cobri-la) —
+const ledMat = new THREE.MeshStandardMaterial({
+  color:0x22c55e, emissive:0x22c55e, emissiveIntensity:1.6, roughness:0.4
+});
+const led = box(0.30, 0.022, 0.02, ledMat, 0, 0.218, DD/2 - 0.003);
+device.add(led);
+const ledGlow = new THREE.PointLight(0x22c55e, 0.6, 1.8);
+ledGlow.position.set(0, DH/2 + 0.1, 0.3);
+device.add(ledGlow);
+
+// — Câmera / sensor no topo —
+device.add(cyl(0.016,0.016,0.016,
+  new THREE.MeshStandardMaterial({ color:0x05070b, roughness:0.25, metalness:0.7 }),
+  0, 0.252, DD/2));
+
+// — Botões físicos laterais —
+for (let i=0;i<3;i++) device.add(box(0.024, 0.075, 0.04, matDark, DW/2, 0.11 - i*0.115, 0));
+device.add(box(0.024, 0.12, 0.044, matOrange, -DW/2, 0, 0));
+
+// — Alto-falante (abaixo da tela) —
+device.add(box(0.22, 0.03, 0.024,
+  new THREE.MeshStandardMaterial({ color:0x05070b, roughness:0.8 }), 0, -0.247, DD/2));
+
+// — Posiciona a tela na torre —
+device.position.set(0, 1.46, -0.72);
+device.rotation.x = 0.12;
+scene.add(device);
+scene.add(box(0.1, 0.1, 0.34, matMetal, 0, 1.45, -0.95));
+scene.add(box(0.2, 0.32, 0.1, matDark, 0, 1.45, -1.06));
+
+// ═══════════════════════════════════════════
+//  USUÁRIO — boneco articulado animado
+// ═══════════════════════════════════════════
+function V(x,y,z){ return new THREE.Vector3(x,y,z); }
+const UP = V(0,1,0);
+
+const matSkin  = new THREE.MeshStandardMaterial({ color:0xc08552, roughness:0.6 });
+const matShirt = new THREE.MeshStandardMaterial({ color:0x9aa3b2, roughness:0.85 });
+const matShort = new THREE.MeshStandardMaterial({ color:0x20242e, roughness:0.9 });
+const matShoe  = new THREE.MeshStandardMaterial({ color:0xeef0f3, roughness:0.7 });
+
+const user = new THREE.Group();
+scene.add(user);
+
+function makeBone(r, mat){
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1, 14), mat);
+  m.castShadow = true; user.add(m); return m;
+}
+function makeBall(r, mat){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 18), mat);
+  m.castShadow = true; user.add(m); return m;
+}
+function setBone(mesh, a, b){
+  const d = new THREE.Vector3().subVectors(b, a);
+  mesh.position.copy(a).add(b).multiplyScalar(0.5);
+  mesh.scale.y = Math.max(d.length(), 0.001);
+  mesh.quaternion.setFromUnitVectors(UP, d.clone().normalize());
+}
+
+const bTorso = makeBone(0.135, matShirt), bNeck = makeBone(0.055, matSkin);
+const bUarmL = makeBone(0.05, matSkin),  bUarmR = makeBone(0.05, matSkin);
+const bFarmL = makeBone(0.043, matSkin), bFarmR = makeBone(0.043, matSkin);
+const bThighL= makeBone(0.078, matShort),bThighR= makeBone(0.078, matShort);
+const bShinL = makeBone(0.06, matSkin),  bShinR = makeBone(0.06, matSkin);
+const jChest = makeBall(0.155, matShirt), jPelvis = makeBall(0.135, matShort);
+const jHead  = makeBall(0.125, matSkin);
+const jShL = makeBall(0.072, matShirt), jShR = makeBall(0.072, matShirt);
+const jElL = makeBall(0.05, matSkin),  jElR = makeBall(0.05, matSkin);
+const jHaL = makeBall(0.052, matSkin), jHaR = makeBall(0.052, matSkin);
+const jKnL = makeBall(0.072, matShort),jKnR = makeBall(0.072, matShort);
+const jAnL = makeBall(0.063, matShoe), jAnR = makeBall(0.063, matShoe);
+
+// poses da remada sentada (fase 0 = braços estendidos | fase 1 = manopla puxada)
+const POSE = {
+  ext: {
+    pelvis:V(0,0.64,0.50), chest:V(0,1.07,0.50), neck:V(0,1.14,0.47), head:V(0,1.28,0.43),
+    shL:V(-0.18,1.05,0.50), shR:V(0.18,1.05,0.50),
+    haL:V(-0.10,0.86,0.04), haR:V(0.10,0.86,0.04),
+    hipL:V(-0.11,0.64,0.49), hipR:V(0.11,0.64,0.49),
+    knL:V(-0.12,0.58,0.05), knR:V(0.12,0.58,0.05),
+    anL:V(-0.12,0.26,-0.02), anR:V(0.12,0.26,-0.02),
+  },
+  pull: {
+    pelvis:V(0,0.64,0.46), chest:V(0,1.11,0.38), neck:V(0,1.18,0.35), head:V(0,1.32,0.31),
+    shL:V(-0.18,1.08,0.39), shR:V(0.18,1.08,0.39),
+    haL:V(-0.09,0.93,0.34), haR:V(0.09,0.93,0.34),
+    hipL:V(-0.11,0.64,0.46), hipR:V(0.11,0.64,0.46),
+    knL:V(-0.12,0.58,0.05), knR:V(0.12,0.58,0.05),
+    anL:V(-0.12,0.26,-0.02), anR:V(0.12,0.26,-0.02),
+  }
+};
+const ARM_U = 0.26, ARM_F = 0.26, LEG_T = 0.43, LEG_S = 0.43;
+
+// IK de 2 ossos
+function ik2(a0, b0, Lu, Lf, pole){
+  const toEnd = new THREE.Vector3().subVectors(b0, a0);
+  const dist = Math.min(toEnd.length(), Lu + Lf - 0.003);
+  const axis = toEnd.clone().normalize();
+  const a = (dist*dist + Lu*Lu - Lf*Lf) / (2*dist);
+  const h = Math.sqrt(Math.max(0, Lu*Lu - a*a));
+  let perp = pole.clone().sub(axis.clone().multiplyScalar(pole.dot(axis)));
+  if (perp.lengthSq() < 1e-5) perp.set(0,-1,0);
+  perp.normalize();
+  return a0.clone().add(axis.multiplyScalar(a)).add(perp.multiplyScalar(h));
+}
+
+const _v = new THREE.Vector3();
+function poseAt(key, ph){
+  return _v.copy(POSE.ext[key]).lerp(POSE.pull[key], ph).clone();
+}
+
+// altura do piso conforme a posição (0.12 sobre a plataforma, 0 no chão)
+function groundAt(rz){
+  if (rz <= 1.05) return 0.12;
+  if (rz >= 1.40) return 0.0;
+  return 0.12 * (1.40 - rz) / 0.35;
+}
+
+// articulações na pose SENTADA (remada)
+function computeSeated(ph, hn){
+  const J = {};
+  for (const k of ['pelvis','chest','neck','head','shL','shR','haL','haR','hipL','hipR','knL','knR','anL','anR'])
+    J[k] = poseAt(k, ph);
+  if (hn > 0.001){
+    J.chest.z += 0.11*hn; J.chest.y -= 0.05*hn;
+    J.neck.z  += 0.16*hn; J.neck.y  -= 0.10*hn;
+    J.head.z  += 0.21*hn; J.head.y  -= 0.15*hn;
+    J.shL.z   += 0.08*hn; J.shL.y   -= 0.04*hn;
+    J.shR.z   += 0.08*hn; J.shR.y   -= 0.04*hn;
+  }
+  J.elL = ik2(J.shL, J.haL, ARM_U, ARM_F, V(-1.2,-0.4,1));
+  J.elR = ik2(J.shR, J.haR, ARM_U, ARM_F, V( 1.2,-0.4,1));
+  return J;
+}
+
+// articulações EM PÉ / CAMINHANDO (raiz no chão em z=rz)
+function computeStand(rz, gait, moving){
+  const J = {};
+  const gy  = groundAt(rz);
+  const bob = moving ? Math.sin(gait*2)*0.012 : 0;
+  J.pelvis = V(0, gy+0.92+bob, rz);
+  J.chest  = V(0, gy+1.34+bob, rz);
+  J.neck   = V(0, gy+1.42+bob, rz);
+  J.head   = V(0, gy+1.56+bob, rz);
+  J.shL = V(-0.19, gy+1.36+bob, rz);  J.shR = V(0.19, gy+1.36+bob, rz);
+  J.hipL = V(-0.10, gy+0.90+bob, rz); J.hipR = V(0.10, gy+0.90+bob, rz);
+  // pernas
+  ['L','R'].forEach((s,i)=>{
+    const lp = gait + (i ? Math.PI : 0);
+    const fz = moving ? rz + Math.cos(lp)*0.17 : rz + (i ? -0.05 : 0.05);
+    const fy = gy + 0.075 + (moving ? Math.max(0, Math.sin(lp))*0.11 : 0);
+    J['an'+s] = V(i ? 0.11 : -0.11, fy, fz);
+    J['kn'+s] = ik2(J['hip'+s], J['an'+s], LEG_T, LEG_S, V(0,-0.5,-1));
+  });
+  // braços (balançam ao caminhar)
+  [['L',-1],['R',1]].forEach(([s,sgn])=>{
+    const sw = moving ? Math.cos(gait + (s==='L' ? Math.PI : 0)) : 0;
+    J['ha'+s] = V(sgn*0.205, gy+0.86, rz + sw*0.13);
+    J['el'+s] = ik2(J['sh'+s], J['ha'+s], ARM_U, ARM_F, V(sgn*1, -1.1, 0.4));
+  });
+  return J;
+}
+
+function lerpJ(A, B, t){
+  const J = {};
+  for (const k in A) J[k] = A[k].clone().lerp(B[k], t);
+  return J;
+}
+
+function applyBones(J){
+  setBone(bTorso, J.pelvis, J.chest);
+  setBone(bNeck, J.chest, J.neck);
+  setBone(bUarmL, J.shL, J.elL); setBone(bUarmR, J.shR, J.elR);
+  setBone(bFarmL, J.elL, J.haL); setBone(bFarmR, J.elR, J.haR);
+  setBone(bThighL, J.hipL, J.knL); setBone(bThighR, J.hipR, J.knR);
+  setBone(bShinL, J.knL, J.anL);   setBone(bShinR, J.knR, J.anR);
+  jChest.position.copy(J.chest); jPelvis.position.copy(J.pelvis); jHead.position.copy(J.head);
+  jShL.position.copy(J.shL); jShR.position.copy(J.shR);
+  jElL.position.copy(J.elL); jElR.position.copy(J.elR);
+  jHaL.position.copy(J.haL); jHaR.position.copy(J.haR);
+  jKnL.position.copy(J.knL); jKnR.position.copy(J.knR);
+  jAnL.position.copy(J.anL); jAnR.position.copy(J.anR);
+}
+
+// — Manopla + cabo —
+const PULLEY = V(0, 0.4, -0.04);
+const HANDLE_REST = V(0, 0.52, 0.18);
+const handleMid = HANDLE_REST.clone();
+const handleTarget = HANDLE_REST.clone();
+
+const handleRig = new THREE.Group();
+const _hb = new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.26,16), matMetal);
+_hb.rotation.z = Math.PI/2; _hb.castShadow = true; handleRig.add(_hb);
+const _hg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.034,0.034,0.1,14), matPad);
+_hg1.rotation.z = Math.PI/2; _hg1.position.x = -0.08; _hg1.castShadow = true; handleRig.add(_hg1);
+const _hg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.034,0.034,0.1,14), matPad);
+_hg2.rotation.z = Math.PI/2; _hg2.position.x = 0.08; _hg2.castShadow = true; handleRig.add(_hg2);
+scene.add(handleRig);
+
+const cableMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,1,10), matCable);
+cableMesh.castShadow = true;
+scene.add(cableMesh);
+
+function updateHandleCable(){
+  handleRig.position.copy(handleMid);
+  const d = new THREE.Vector3().subVectors(handleMid, PULLEY);
+  cableMesh.position.copy(PULLEY).add(handleMid).multiplyScalar(0.5);
+  cableMesh.scale.y = d.length();
+  cableMesh.quaternion.setFromUnitVectors(UP, d.clone().normalize());
+}
+
+applyBones(computeStand(2.8, 0, false));
+updateHandleCable();
+
+// ═══════════════════════════════════════════
+//  CÂMERA — presets
+// ═══════════════════════════════════════════
+const views = {
+  full:   { pos:new THREE.Vector3(3.8, 2.4, 4.4),  tgt:new THREE.Vector3(0, 1.2, 0.1) },
+  device: { pos:new THREE.Vector3(0.05, 1.62, 1.0), tgt:new THREE.Vector3(0, 1.46, -0.72) },
+};
+let camAnim = null;
+function flyTo(view){
+  camAnim = {
+    fromPos:camera.position.clone(), toPos:view.pos.clone(),
+    fromTgt:controls.target.clone(), toTgt:view.tgt.clone(), t:0
+  };
+}
+
+const bOrbit = document.getElementById('b-orbit');
+const bDevice = document.getElementById('b-device');
+const bFull = document.getElementById('b-full');
+const bError = document.getElementById('b-error');
+const bMirror = document.getElementById('b-mirror');
+const bRestart = document.getElementById('b-restart');
+
+bOrbit.onclick = () => {
+  controls.autoRotate = !controls.autoRotate;
+  bOrbit.classList.toggle('active', controls.autoRotate);
+};
+bDevice.onclick = () => { controls.autoRotate=false; bOrbit.classList.remove('active'); flyTo(views.device); };
+bFull.onclick   = () => { flyTo(views.full); };
+
+// ═══════════════════════════════════════════
+//  APP — fluxo, ações e LED
+// ═══════════════════════════════════════════
+const ledColors = { white:0xcbd5e1, green:0x22c55e, red:0xef4444, blue:0x3b82f6, purple:0xa855f7 };
+function setLED(name){
+  const v = ledColors[name] || ledColors.green;
+  ledMat.color.setHex(v);
+  ledMat.emissive.setHex(v);
+  ledGlow.color.setHex(v);
+}
+
+function updateErrorBtn(){
+  if (flowState === 'correction'){
+    bError.textContent = '✓ Corrigir postura';
+    bError.classList.add('active');
+  } else {
+    bError.textContent = '⚠ Simular erro de postura';
+    bError.classList.remove('active');
+  }
+}
+
+// ── ações ──
+function goDashboard(){
+  if (flowState !== 'login') return;
+  flowState = 'dashboard'; scrDirty = true;
+}
+function goExercise(){
+  if (flowState !== 'dashboard') return;
+  serie = 1; repNum = 0; repValue = '0'; phaseTime = 0; lastPhase = 0;
+  autoErrorDone = false;
+  flowState = 'exercise'; exercising = true;
+  setLED('green'); scrDirty = true;
+}
+function triggerError(){
+  if (flowState !== 'exercise') return;
+  flowState = 'correction'; exercising = false;
+  autoErrorDone = true;   // não dispara o erro automático novamente neste treino
+  correctionT = 6;        // o dispositivo corrige sozinho após alguns segundos
+  setLED('red'); scrDirty = true; updateErrorBtn();
+}
+function correctPosture(){
+  if (flowState !== 'correction') return;
+  flowState = 'exercise'; exercising = true;
+  setLED('green'); scrDirty = true; updateErrorBtn();
+}
+function completeSeries(){       // chamada automaticamente ao atingir as 12 repetições
+  if (flowState !== 'exercise') return;
+  if (serie >= 3){               // última série concluída → encerra o treino
+    flowState = 'conclusion'; exercising = false;
+    setLED('purple'); scrDirty = true;
+  } else {                       // ainda há séries → tela de descanso
+    flowState = 'rest'; restTime = 20; exercising = false;
+    setLED('blue'); scrDirty = true;
+  }
+}
+function endRest(){              // descanso pulado ou esgotado → próxima série
+  if (flowState !== 'rest') return;
+  serie++;
+  repNum = 0; repValue = '0'; phaseTime = 0; lastPhase = 0;
+  flowState = 'exercise'; exercising = true;
+  setLED('green'); scrDirty = true;
+}
+function finalizar(){
+  if (flowState !== 'conclusion') return;
+  flowState = 'getup'; getupProg = 0;   // boneco se levanta e vai embora
+  setLED('white'); scrDirty = true;
+}
+function restartDemo(){
+  flowState = 'arriving';
+  walkProg = 0; gaitT = 0; sitProg = 0; getupProg = 0; leaveProg = 0;
+  exercising = false; phaseTime = 0; hunch = 0;
+  serie = 1; repNum = 0; repValue = '0'; restTime = 0;
+  autoErrorDone = false; correctionT = 0;
+  handleMid.copy(HANDLE_REST);
+  setLED('white'); scrDirty = true; updateErrorBtn();
+}
+
+bError.onclick = () => {
+  if (flowState === 'correction') correctPosture();
+  else if (flowState === 'exercise'){
+    controls.autoRotate = false; bOrbit.classList.remove('active');
+    triggerError();
+  }
+};
+bRestart.onclick = () => restartDemo();
+
+// botões desenhados na tela do monitor (canvas 600×800)
+const SCREEN_BTN = {
+  login:      [ {x:24, y:560, w:552, h:92, act:goDashboard} ],
+  dashboard:  [ {x:24, y:638, w:552, h:92, act:goExercise} ],
+  conclusion: [ {x:24, y:690, w:552, h:86, act:finalizar} ],
+  correction: [ {x:24, y:690, w:552, h:86, act:correctPosture} ],
+  rest:       [ {x:24, y:690, w:552, h:86, act:endRest} ],
+};
+
+// ── raycasting: clique/hover na tela do aparelho ──
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const screenHint = document.getElementById('screen-hint');
+
+function setPointer(e){
+  pointer.x =  (e.clientX / innerWidth)  * 2 - 1;
+  pointer.y = -(e.clientY / innerHeight) * 2 + 1;
+}
+function screenUV(){
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObject(screen, false);
+  return (hits.length && hits[0].uv) ? hits[0].uv : null;
+}
+function btnAtCanvas(cx, cy){
+  for (const b of (SCREEN_BTN[flowState] || []))
+    if (cx>=b.x && cx<=b.x+b.w && cy>=b.y && cy<=b.y+b.h) return b;
+  return null;
+}
+function btnAt(uv){ return btnAtCanvas(uv.x*600, (1-uv.y)*800); }
+
+renderer.domElement.addEventListener('pointermove', e => {
+  setPointer(e);
+  const uv = screenUV();
+  renderer.domElement.style.cursor = (uv && btnAt(uv)) ? 'pointer' : 'default';
+  screenHint.style.opacity = (uv && SCREEN_BTN[flowState]) ? '1' : '0';
+});
+renderer.domElement.addEventListener('click', e => {
+  setPointer(e);
+  const uv = screenUV();
+  if (!uv) return;
+  const b = btnAt(uv);
+  if (b){
+    controls.autoRotate = false; bOrbit.classList.remove('active');
+    b.act();
+  }
+});
+updateErrorBtn();
+
+// ═══════════════════════════════════════════
+//  SEGUNDA JANELA — tela do app (espelho + interativa)
+//  Construída só via DOM (sem strings de HTML) para não confundir o Live Server.
+// ═══════════════════════════════════════════
+let mirrorWin = null, mirrorCtx = null;
+function openMirror(){
+  if (mirrorWin && !mirrorWin.closed){ mirrorWin.focus(); return; }
+  mirrorWin = window.open('', 'shapeAppMirror', 'width=560,height=880');
+  if (!mirrorWin){ alert('Permita pop-ups no navegador para abrir a tela do app.'); return; }
+  const d = mirrorWin.document;
+  d.title = 'SHAPE FitGuide — Tela do App';
+  d.body.innerHTML = '';
+  d.body.style.cssText = 'margin:0;height:100vh;background:#0b1120;display:flex;'+
+    'flex-direction:column;align-items:center;justify-content:center;'+
+    'font-family:Segoe UI,Arial,sans-serif;';
+  const cv = d.createElement('canvas');
+  cv.width = 600; cv.height = 800;
+  cv.style.cssText = 'height:80vh;width:auto;border-radius:24px;'+
+    'box-shadow:0 0 60px rgba(0,0,0,.75);';
+  d.body.appendChild(cv);
+  const cap = d.createElement('p');
+  cap.textContent = 'Tela do app — interativa e sincronizada com a simulação 3D. '+
+    'Clique nos botões aqui ou na máquina 3D.';
+  cap.style.cssText = 'color:#64748b;font-size:12px;margin:14px 18px 0;'+
+    'text-align:center;max-width:520px;';
+  d.body.appendChild(cap);
+  mirrorCtx = cv.getContext('2d');
+  mirrorCtx.drawImage(screenCanvas, 0, 0);
+  // cliques na 2ª janela acionam o app — closures da janela principal
+  const toCanvas = e => {
+    const r = cv.getBoundingClientRect();
+    return [ (e.clientX-r.left)/r.width*600, (e.clientY-r.top)/r.height*800 ];
+  };
+  cv.addEventListener('click', e => {
+    const p = toCanvas(e), bt = btnAtCanvas(p[0], p[1]);
+    if (bt){ controls.autoRotate = false; bOrbit.classList.remove('active'); bt.act(); }
+  });
+  cv.addEventListener('mousemove', e => {
+    const p = toCanvas(e);
+    cv.style.cursor = btnAtCanvas(p[0], p[1]) ? 'pointer' : 'default';
+  });
+}
+function syncMirror(){
+  if (mirrorWin && !mirrorWin.closed && mirrorCtx){
+    try { mirrorCtx.drawImage(screenCanvas, 0, 0); } catch(e){}
+  }
+}
+bMirror.onclick = () => openMirror();
+
+// ═══════════════════════════════════════════
+//  ANIMATE
+// ═══════════════════════════════════════════
+let lastPhase = 1, repNum = 0;
+let walkProg = 0, gaitT = 0, sitProg = 0, getupProg = 0, leaveProg = 0;
+const ENTRY_Z = 2.8;
+const clock = new THREE.Clock();
+
+setLED('white');
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t  = clock.elapsedTime;
+
+  // câmera
+  if (camAnim){
+    camAnim.t += dt * 1.6;
+    const e = Math.min(camAnim.t, 1);
+    const k = e<0.5 ? 4*e*e*e : 1-Math.pow(-2*e+2,3)/2;
+    camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, k);
+    controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, k);
+    if (e>=1) camAnim = null;
+  }
+
+  // LED
+  if (flowState === 'correction'){
+    const on = Math.sin(t*9) > 0;
+    led.material.emissiveIntensity = on ? 2.4 : 0.25;
+    ledGlow.intensity = on ? 0.75 : 0.1;
+  } else {
+    led.material.emissiveIntensity = 1.2 + Math.sin(t*2.5)*0.5;
+    ledGlow.intensity = 0.35 + Math.sin(t*2.5)*0.2;
+  }
+
+  // ─── boneco + fluxo ───
+  let J;
+  if (flowState === 'arriving'){
+    walkProg += dt / 3.6;
+    gaitT += dt * 8;
+    const p  = Math.min(walkProg, 1);
+    const ez = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+    const rz = ENTRY_Z + (0.6 - ENTRY_Z) * ez;
+    J = computeStand(rz, gaitT, p < 1);
+    if (walkProg >= 1){ flowState = 'sitting'; sitProg = 0; }
+  } else if (flowState === 'sitting'){
+    sitProg += dt / 1.5;
+    const p  = Math.min(sitProg, 1);
+    const ez = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+    J = lerpJ(computeStand(0.6,0,false), computeSeated(0,0), ez);
+    if (sitProg >= 1){ flowState = 'login'; scrDirty = true; }
+  } else if (flowState === 'getup'){
+    getupProg += dt / 1.4;
+    const p  = Math.min(getupProg, 1);
+    const ez = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+    J = lerpJ(computeSeated(0,0), computeStand(0.6,0,false), ez);
+    if (getupProg >= 1){ flowState = 'leaving'; leaveProg = 0; }
+  } else if (flowState === 'leaving'){
+    leaveProg += dt / 3.4;
+    gaitT += dt * 8;
+    const p  = Math.min(leaveProg, 1);
+    const ez = p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+    const rz = 0.6 + (ENTRY_Z - 0.6) * ez;
+    J = computeStand(rz, gaitT, p < 1);
+    if (leaveProg >= 1){           // novo ciclo: volta à tela inicial
+      serie = 1; repNum = 0; repValue = '0'; phaseTime = 0; hunch = 0;
+      flowState = 'arriving'; walkProg = 0;
+      setLED('white'); scrDirty = true;
+    }
+  } else if (flowState === 'login' || flowState === 'dashboard'){
+    J = computeSeated(0, 0);
+  } else if (flowState === 'conclusion'){
+    dispPhase += (0 - dispPhase) * Math.min(1, dt*4);   // relaxa após o treino
+    hunch += (0 - hunch) * Math.min(1, dt*5);
+    J = computeSeated(dispPhase, hunch);
+  } else {
+    // exercise / correction / rest
+    const hT = (flowState === 'correction') ? 1 : 0;
+    hunch += (hT - hunch) * Math.min(1, dt*7);
+
+    if (flowState === 'rest'){
+      const prev = Math.ceil(restTime);
+      restTime -= dt;
+      if (Math.ceil(restTime) !== prev) scrDirty = true;
+      if (restTime <= 0){ restTime = 0; endRest(); }
+      // boneco descansa: volta suavemente à posição relaxada e fica parado
+      dispPhase += (0 - dispPhase) * Math.min(1, dt*5);
+    } else if (flowState === 'correction'){
+      correctionT -= dt;
+      if (correctionT <= 0) correctPosture();   // o dispositivo corrige sozinho
+      // dispPhase permanece congelado — boneco parado, com a postura curvada
+    } else {
+      // exercício ativo
+      phaseTime += dt;
+      dispPhase = 0.5 - 0.5*Math.cos(phaseTime * 3.6);
+      if (dispPhase > 0.93 && lastPhase <= 0.93){
+        repNum++;
+        repValue = String(repNum);
+        scrDirty = true;
+        // o boneco erra a postura sozinho na 1ª série — detectado sem clique
+        if (serie === 1 && !autoErrorDone && repNum === AUTO_ERROR_REP) triggerError();
+        if (repNum >= 12) completeSeries();   // série encerra ao completar as repetições
+      }
+    }
+    lastPhase = dispPhase;
+    J = computeSeated(dispPhase, hunch);
+  }
+  applyBones(J);
+
+  // manopla + cabo
+  const workout = (flowState==='exercise' || flowState==='correction' || flowState==='rest');
+  if (workout){ handleTarget.copy(J.haL).add(J.haR).multiplyScalar(0.5); }
+  else handleTarget.copy(HANDLE_REST);
+  handleMid.lerp(handleTarget, Math.min(1, dt*12));
+  updateHandleCable();
+
+  // redesenha a textura do monitor + espelha na 2ª janela
+  if (scrDirty){
+    drawScreen();
+    screenTex.needsUpdate = true;
+    syncMirror();
+    scrDirty = false;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+requestAnimationFrame(() => {
+  document.getElementById('loader').style.display = 'none';
+  animate();
+});
+</script>
+</body>
+</html>
