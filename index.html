@@ -9,24 +9,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:100%; height:100%; overflow:hidden; background:#0b1120;
+  html, body { width:100%; height:100%; overflow:hidden; background:#e8eef5;
     font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
     -webkit-font-smoothing:antialiased; }
   canvas { display:block; }
 
   .panel {
     position:fixed;
-    background:rgba(15,23,42,.82);
-    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.92);
+    border:1px solid rgba(0,0,0,.12);
     border-radius:14px;
     backdrop-filter:blur(10px);
-    color:#e2e8f0;
+    color:#1e293b;
   }
 
   #title { top:18px; left:18px; padding:16px 20px; max-width:350px; }
   #title .tag { font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:#f97316; font-weight:700; }
-  #title h1 { font-size:18px; font-weight:900; margin:5px 0 4px; color:#fff; }
-  #title p  { font-size:11px; color:#94a3b8; line-height:1.6; }
+  #title h1 { font-size:18px; font-weight:900; margin:5px 0 4px; color:#0f172a; }
+  #title p  { font-size:11px; color:#475569; line-height:1.6; }
 
   #controls {
     bottom:18px; left:50%; transform:translateX(-50%);
@@ -35,9 +35,9 @@
     flex-wrap:wrap; justify-content:center; max-width:94vw;
   }
   .btn {
-    background:rgba(255,255,255,.07);
-    border:1px solid rgba(255,255,255,.14);
-    color:#cbd5e1;
+    background:rgba(0,0,0,.06);
+    border:1px solid rgba(0,0,0,.15);
+    color:#1e293b;
     font-size:11px; font-weight:600;
     padding:8px 14px; border-radius:20px;
     cursor:pointer; transition:.15s; white-space:nowrap;
@@ -49,10 +49,10 @@
   #legend h3 { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#f97316; margin-bottom:10px; }
   .leg { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
   .leg .dot { width:9px; height:9px; border-radius:50%; margin-top:3px; flex-shrink:0; }
-  .leg .txt { font-size:10px; color:#cbd5e1; line-height:1.5; }
-  .leg .txt b { color:#fff; }
+  .leg .txt { font-size:10px; color:#334155; line-height:1.5; }
+  .leg .txt b { color:#0f172a; }
 
-  #hint { bottom:18px; right:18px; padding:9px 14px; font-size:10px; color:#64748b; }
+  #hint { bottom:18px; right:18px; padding:9px 14px; font-size:10px; color:#475569; }
 
   #screen-hint {
     position:fixed; top:16px; left:50%;
@@ -67,7 +67,7 @@
 
   #loader {
     position:fixed; inset:0;
-    background:#0b1120;
+    background:#e8eef5;
     display:flex; align-items:center; justify-content:center;
     color:#f97316; font-size:14px; font-weight:700;
     z-index:50;
@@ -124,8 +124,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 //  SCENE
 // ═══════════════════════════════════════════
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b1120);
-scene.fog = new THREE.Fog(0x0b1120, 9, 22);
+scene.background = new THREE.Color(0xe8eef5);
+scene.fog = new THREE.Fog(0xe8eef5, 9, 22);
 
 const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setSize(innerWidth, innerHeight);
@@ -150,7 +150,7 @@ controls.autoRotateSpeed = 0.8;
 // ═══════════════════════════════════════════
 //  LIGHTING
 // ═══════════════════════════════════════════
-scene.add(new THREE.HemisphereLight(0x9db9d9, 0x1a1f2e, 0.7));
+scene.add(new THREE.HemisphereLight(0x9db9d9, 0xc8d4e3, 0.7));
 
 const key = new THREE.DirectionalLight(0xffffff, 2.2);
 key.position.set(4, 7, 5);
@@ -174,13 +174,13 @@ scene.add(accent);
 // ═══════════════════════════════════════════
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(11, 64),
-  new THREE.MeshStandardMaterial({ color:0x161d2e, roughness:0.95, metalness:0.0 })
+  new THREE.MeshStandardMaterial({ color:0xc8d4e3, roughness:0.95, metalness:0.0 })
 );
 floor.rotation.x = -Math.PI/2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-const grid = new THREE.GridHelper(20, 40, 0x2a3550, 0x1c2438);
+const grid = new THREE.GridHelper(20, 40, 0x9aafc7, 0xb4c5d8);
 grid.position.y = 0.002;
 scene.add(grid);
 
@@ -326,40 +326,40 @@ function drawScreen(){
 }
 
 // ── TELA: INICIAL / STANDBY ──
+// ── LED indicator na tela canvas ──
+
 function drawStandby(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#f0f4f8'; c.fillRect(0,0,W,H);
   c.textAlign='center';
   c.fillStyle='#f97316'; c.font='900 78px Segoe UI, sans-serif';
   c.fillText('SHAPE', W/2, 250);
-  c.fillStyle='#64748b'; c.font='600 24px Segoe UI';
+  c.fillStyle='#475569'; c.font='600 24px Segoe UI';
   c.fillText('FitGuide', W/2, 292);
   c.strokeStyle='#f97316'; c.lineWidth=4;
   c.beginPath(); c.arc(W/2, 470, 92, 0, Math.PI*2); c.stroke();
   c.font='62px Segoe UI'; c.fillText('🏋', W/2, 492);
-  c.fillStyle='#e2e8f0'; c.font='bold 27px Segoe UI';
+  c.fillStyle='#0f172a'; c.font='bold 27px Segoe UI';
   c.fillText('Bem-vindo ao Studio GS-Fit', W/2, 622);
-  c.fillStyle='#64748b'; c.font='20px Segoe UI';
+  c.fillStyle='#475569'; c.font='20px Segoe UI';
   c.fillText('Aproxime-se da máquina para começar', W/2, 660);
   c.textAlign='left';
 }
-
-// ── TELA: IDENTIFICAÇÃO / LOGIN ──
 function drawLogin(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
-  c.fillStyle='#1e293b'; c.fillRect(0,0,W,104);
+  c.fillStyle='#f0f4f8'; c.fillRect(0,0,W,H);
+  c.fillStyle='#e2e8f0'; c.fillRect(0,0,W,104);
   c.textAlign='left';
-  c.fillStyle='#ffffff'; c.font='bold 28px Segoe UI'; c.fillText('Identificação', 28, 62);
+  c.fillStyle='#0f172a'; c.font='bold 28px Segoe UI'; c.fillText('Identificação', 28, 62);
   c.textAlign='center';
-  c.fillStyle='#94a3b8'; c.font='21px Segoe UI';
+  c.fillStyle='#475569'; c.font='21px Segoe UI';
   c.fillText('Identifique-se para acessar', W/2, 188);
   c.fillText('o seu treino personalizado', W/2, 218);
-  c.fillStyle='#1e293b'; roundRect(c,24,262,W-48,252,20); c.fill();
+  c.fillStyle='#dde4ee'; roundRect(c,24,262,W-48,252,20); c.fill();
   c.font='92px Segoe UI'; c.fillText('💳', W/2, 388);
-  c.fillStyle='#e2e8f0'; c.font='bold 25px Segoe UI';
+  c.fillStyle='#0f172a'; c.font='bold 25px Segoe UI';
   c.fillText('Aproxime seu cartão', W/2, 440);
-  c.fillStyle='#64748b'; c.font='18px Segoe UI';
+  c.fillStyle='#475569'; c.font='18px Segoe UI';
   c.fillText('ou toque no botão abaixo para entrar', W/2, 474);
   c.fillStyle='#f97316'; roundRect(c,24,560,W-48,92,16); c.fill();
   c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI';
@@ -370,16 +370,16 @@ function drawLogin(){
 // ── TELA: DASHBOARD / TREINO DO DIA ──
 function drawDashboard(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
-  c.fillStyle='#1e293b'; c.fillRect(0,0,W,104);
+  c.fillStyle='#f0f4f8'; c.fillRect(0,0,W,H);
+  c.fillStyle='#e2e8f0'; c.fillRect(0,0,W,104);
   c.textAlign='left';
-  c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI'; c.fillText('Olá, Ana! 👋', 28, 50);
-  c.fillStyle='#64748b'; c.font='18px Segoe UI';
+  c.fillStyle='#0f172a'; c.font='bold 27px Segoe UI'; c.fillText('Olá, Ana! 👋', 28, 50);
+  c.fillStyle='#475569'; c.font='18px Segoe UI';
   c.fillText('Treino de hoje · Membros superiores', 28, 82);
   // exercício atual
-  c.fillStyle='#1e293b'; roundRect(c,24,128,W-48,92,16); c.fill();
+  c.fillStyle='#dde4ee'; roundRect(c,24,128,W-48,92,16); c.fill();
   c.fillStyle='#f97316'; c.font='bold 23px Segoe UI'; c.fillText('▶ Remada Sentada', 44, 172);
-  c.fillStyle='#64748b'; c.font='17px Segoe UI';
+  c.fillStyle='#475569'; c.font='17px Segoe UI';
   c.fillText('3 séries · 12 repetições · agora', 44, 200);
   // lista
   const items=[['✓ Supino reto','concluído','#22c55e'],
@@ -387,16 +387,16 @@ function drawDashboard(){
                ['Tríceps na polia','3 × 12','#64748b']];
   let y=240;
   for(const [n,d,col] of items){
-    c.fillStyle='#161e2e'; roundRect(c,24,y,W-48,62,12); c.fill();
-    c.textAlign='left'; c.fillStyle=(col==='#22c55e')?'#22c55e':'#cbd5e1';
+    c.fillStyle='#e8eef5'; roundRect(c,24,y,W-48,62,12); c.fill();
+    c.textAlign='left'; c.fillStyle=(col==='#22c55e')?'#16a34a':'#334155';
     c.font='bold 19px Segoe UI'; c.fillText(n, 44, y+38);
-    c.textAlign='right'; c.fillStyle='#64748b'; c.font='16px Segoe UI';
+    c.textAlign='right'; c.fillStyle='#475569'; c.font='16px Segoe UI';
     c.fillText(d, W-44, y+38);
     y+=74;
   }
   c.textAlign='left';
   c.fillStyle='rgba(249,115,22,0.10)'; roundRect(c,24,y+8,W-48,70,14); c.fill();
-  c.fillStyle='#fb923c'; c.font='18px Segoe UI';
+  c.fillStyle='#ea580c'; c.font='18px Segoe UI';
   c.fillText('💡 Mantenha-se hidratado durante o treino', 44, y+50);
   // botão
   c.fillStyle='#f97316'; roundRect(c,24,638,W-48,92,16); c.fill();
@@ -408,22 +408,22 @@ function drawDashboard(){
 // ── TELA: EXERCÍCIO ATIVO ──
 function drawExercise(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
+  c.fillStyle='#f0f4f8'; c.fillRect(0,0,W,H);
   // barra superior
-  c.fillStyle='#1e293b'; c.fillRect(0,0,W,104);
+  c.fillStyle='#e2e8f0'; c.fillRect(0,0,W,104);
   c.textAlign='left';
-  c.fillStyle='#ffffff'; c.font='bold 30px Segoe UI, sans-serif';
+  c.fillStyle='#0f172a'; c.font='bold 30px Segoe UI, sans-serif';
   c.fillText('Remada Sentada', 28, 46);
-  c.fillStyle='#64748b'; c.font='19px Segoe UI, sans-serif';
+  c.fillStyle='#475569'; c.font='19px Segoe UI, sans-serif';
   c.fillText('Série ' + serie + ' de 3', 28, 76);
-  c.fillStyle='#22c55e'; c.font='bold 21px Segoe UI, sans-serif';
+  c.fillStyle='#16a34a'; c.font='bold 21px Segoe UI, sans-serif';
   c.textAlign='right';
   c.fillText('✓ Boa postura', W-26, 58);
   c.textAlign='left';
   // card ilustração
-  c.fillStyle='#1e293b'; roundRect(c, 24, 122, W-48, 208, 20); c.fill();
+  c.fillStyle='#dde4ee'; roundRect(c, 24, 122, W-48, 208, 20); c.fill();
   c.lineCap='round';
-  c.strokeStyle='#94a3b8'; c.lineWidth=6;
+  c.strokeStyle='#64748b'; c.lineWidth=6;
   c.beginPath(); c.arc(372, 170, 22, 0, Math.PI*2); c.stroke();
   c.beginPath(); c.moveTo(368, 206); c.lineTo(400, 230); c.stroke();
   c.beginPath(); c.moveTo(400, 230); c.lineTo(298, 240); c.stroke();
@@ -431,47 +431,47 @@ function drawExercise(){
   c.beginPath(); c.moveTo(272, 264); c.lineTo(240, 306); c.stroke();
   c.strokeStyle='#22c55e'; c.lineWidth=9;
   c.beginPath(); c.moveTo(368, 192); c.lineTo(380, 272); c.stroke();
-  c.strokeStyle='#475569'; c.lineWidth=7;
+  c.strokeStyle='#94a3b8'; c.lineWidth=7;
   c.beginPath(); c.moveTo(362, 288); c.lineTo(446, 288); c.stroke();
   c.strokeStyle='#f97316'; c.lineWidth=6;
   c.beginPath(); c.moveTo(298, 240); c.lineTo(150, 258); c.stroke();
   c.fillStyle='#f97316';
   c.fillRect(286, 228, 16, 24);
   c.fillRect(118, 230, 30, 56);
-  c.fillStyle='#22c55e'; c.font='bold 17px Segoe UI'; c.textAlign='left';
+  c.fillStyle='#16a34a'; c.font='bold 17px Segoe UI'; c.textAlign='left';
   c.fillText('✓ Tronco', 402, 178);
   c.fillText('   firme', 402, 199);
   c.fillStyle='#f97316'; c.font='bold 16px Segoe UI'; c.textAlign='center';
   c.fillText('Carga', 133, 218);
   c.textAlign='left';
   // card contadores
-  c.fillStyle='#1e293b'; roundRect(c, 24, 348, W-48, 168, 20); c.fill();
+  c.fillStyle='#dde4ee'; roundRect(c, 24, 348, W-48, 168, 20); c.fill();
   const cols=[
     { x:128, val:repValue,      lbl:'REPS',  col:'#f97316' },
-    { x:300, val:String(serie), lbl:'SÉRIE', col:'#ffffff' },
-    { x:472, val:'12',          lbl:'META',  col:'#475569' },
+    { x:300, val:String(serie), lbl:'SÉRIE', col:'#0f172a' },
+    { x:472, val:'12',          lbl:'META',  col:'#64748b' },
   ];
   for(const o of cols){
     c.textAlign='center';
     c.fillStyle=o.col; c.font='bold 96px Segoe UI'; c.fillText(o.val, o.x, 452);
-    c.fillStyle='#64748b'; c.font='bold 18px Segoe UI'; c.fillText(o.lbl, o.x, 492);
+    c.fillStyle='#475569'; c.font='bold 18px Segoe UI'; c.fillText(o.lbl, o.x, 492);
   }
-  c.strokeStyle='rgba(255,255,255,.07)'; c.lineWidth=2;
+  c.strokeStyle='rgba(0,0,0,.10)'; c.lineWidth=2;
   c.beginPath(); c.moveTo(214,378); c.lineTo(214,486); c.stroke();
   c.beginPath(); c.moveTo(386,378); c.lineTo(386,486); c.stroke();
   c.textAlign='left';
   // card dica
-  c.fillStyle='rgba(34,197,94,0.10)'; roundRect(c, 24, 532, W-48, 88, 16); c.fill();
-  c.fillStyle='#4ade80'; c.font='20px Segoe UI';
+  c.fillStyle='rgba(34,197,94,0.12)'; roundRect(c, 24, 532, W-48, 88, 16); c.fill();
+  c.fillStyle='#16a34a'; c.font='20px Segoe UI';
   c.fillText('💡 Puxe a manopla até o abdômen', 44, 568);
   c.fillText('     mantendo o tronco firme e estável', 44, 596);
   // progresso da série — encerra sozinha ao completar as repetições
-  c.fillStyle='#64748b'; c.font='bold 15px Segoe UI'; c.textAlign='left';
+  c.fillStyle='#475569'; c.font='bold 15px Segoe UI'; c.textAlign='left';
   c.fillText('PROGRESSO DA SÉRIE', 28, 658);
-  c.fillStyle='#1e293b'; roundRect(c, 24, 672, W-48, 30, 15); c.fill();
+  c.fillStyle='#dde4ee'; roundRect(c, 24, 672, W-48, 30, 15); c.fill();
   const rp = Math.min(1, repNum/12);
   if (rp > 0){ c.fillStyle='#f97316'; roundRect(c, 24, 672, Math.max(30,(W-48)*rp), 30, 15); c.fill(); }
-  c.fillStyle='#94a3b8'; c.font='15px Segoe UI'; c.textAlign='center';
+  c.fillStyle='#475569'; c.font='15px Segoe UI'; c.textAlign='center';
   c.fillText(repNum + ' de 12 repetições · o descanso inicia automaticamente', W/2, 742);
   c.textAlign='left';
 }
@@ -479,33 +479,33 @@ function drawExercise(){
 // ── TELA: CORREÇÃO DE POSTURA ──
 function drawCorrection(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
-  c.fillStyle='#7f1d1d'; c.fillRect(0,0,W,104);
+  c.fillStyle='#fff5f5'; c.fillRect(0,0,W,H);
+  c.fillStyle='#fee2e2'; c.fillRect(0,0,W,104);
   c.textAlign='left';
-  c.fillStyle='#ffffff'; c.font='bold 28px Segoe UI, sans-serif';
+  c.fillStyle='#991b1b'; c.font='bold 28px Segoe UI, sans-serif';
   c.fillText('⚠ ATENÇÃO — Postura', 26, 48);
-  c.fillStyle='#fca5a5'; c.font='18px Segoe UI, sans-serif';
+  c.fillStyle='#dc2626'; c.font='18px Segoe UI, sans-serif';
   c.fillText('Remada Sentada  ·  TREINO PAUSADO', 26, 82);
   c.fillStyle='rgba(239,68,68,0.12)'; roundRect(c, 24, 126, W-48, 152, 18); c.fill();
   c.strokeStyle='#ef4444'; c.lineWidth=2; roundRect(c, 24, 126, W-48, 152, 18); c.stroke();
   c.textAlign='center';
-  c.fillStyle='#f87171'; c.font='bold 27px Segoe UI';
+  c.fillStyle='#dc2626'; c.font='bold 27px Segoe UI';
   c.fillText('Corrija sua postura!', W/2, 172);
-  c.fillStyle='#fecaca'; c.font='19px Segoe UI';
+  c.fillStyle='#7f1d1d'; c.font='19px Segoe UI';
   c.fillText('Você está arredondando as costas.', W/2, 212);
   c.fillText('Endireite a coluna e puxe a manopla', W/2, 240);
   c.fillText('com controle antes de continuar.', W/2, 268);
-  c.fillStyle='#1e293b'; roundRect(c, 24, 300, W-48, 322, 20); c.fill();
+  c.fillStyle='#f1f5f9'; roundRect(c, 24, 300, W-48, 322, 20); c.fill();
   c.fillStyle='#ef4444'; c.font='bold 22px Segoe UI'; c.textAlign='center';
   c.fillText('✗ Coluna curvada', W/2, 344);
   c.lineCap='round'; c.lineJoin='round';
-  c.strokeStyle='#64748b'; c.lineWidth=7;
+  c.strokeStyle='#94a3b8'; c.lineWidth=7;
   c.beginPath(); c.arc(345, 408, 24, 0, Math.PI*2); c.stroke();
   c.beginPath(); c.moveTo(352, 430); c.lineTo(404, 452); c.stroke();
   c.beginPath(); c.moveTo(404, 452); c.lineTo(258, 470); c.stroke();
   c.beginPath(); c.moveTo(392, 512); c.lineTo(262, 502); c.stroke();
   c.beginPath(); c.moveTo(262, 502); c.lineTo(224, 556); c.stroke();
-  c.strokeStyle='#475569'; c.lineWidth=8;
+  c.strokeStyle='#cbd5e1'; c.lineWidth=8;
   c.beginPath(); c.moveTo(360, 540); c.lineTo(470, 540); c.stroke();
   c.strokeStyle='#ef4444'; c.lineWidth=13;
   c.beginPath(); c.moveTo(392, 512); c.quadraticCurveTo(424, 448, 350, 428); c.stroke();
@@ -522,28 +522,28 @@ function drawCorrection(){
 // ── TELA: DESCANSO ──
 function drawRest(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
-  c.fillStyle='#1e3a8a'; c.fillRect(0,0,W,104);
+  c.fillStyle='#f0f6ff'; c.fillRect(0,0,W,H);
+  c.fillStyle='#dbeafe'; c.fillRect(0,0,W,104);
   c.textAlign='left';
-  c.fillStyle='#ffffff'; c.font='bold 28px Segoe UI'; c.fillText('Série ' + serie + ' de 3 concluída ✓', 26, 48);
-  c.fillStyle='#93c5fd'; c.font='18px Segoe UI';
+  c.fillStyle='#1e3a8a'; c.font='bold 28px Segoe UI'; c.fillText('Série ' + serie + ' de 3 concluída ✓', 26, 48);
+  c.fillStyle='#2563eb'; c.font='18px Segoe UI';
   c.fillText('Remada Sentada  ·  ❤ 96 bpm', 26, 82);
   c.textAlign='center';
-  c.fillStyle='#64748b'; c.font='bold 24px Segoe UI'; c.fillText('DESCANSO', W/2, 196);
+  c.fillStyle='#475569'; c.font='bold 24px Segoe UI'; c.fillText('DESCANSO', W/2, 196);
   const sec=Math.max(0,Math.ceil(restTime));
   c.fillStyle='#3b82f6'; c.font='bold 168px Segoe UI';
   c.fillText('0:'+String(sec).padStart(2,'0'), W/2, 352);
-  c.fillStyle='#1e293b'; roundRect(c, 70, 392, W-140, 28, 14); c.fill();
+  c.fillStyle='#dde8fa'; roundRect(c, 70, 392, W-140, 28, 14); c.fill();
   const frac=Math.max(0,Math.min(1,restTime/20));
   if(frac>0){ c.fillStyle='#3b82f6'; roundRect(c, 70, 392, (W-140)*frac, 28, 14); c.fill(); }
   c.fillStyle='rgba(59,130,246,0.12)'; roundRect(c, 24, 452, W-48, 110, 16); c.fill();
-  c.fillStyle='#93c5fd'; c.font='22px Segoe UI';
+  c.fillStyle='#2563eb'; c.font='22px Segoe UI';
   c.fillText('💪 Respire fundo e hidrate-se.', W/2, 496);
   c.fillText('Prepare-se para a próxima série!', W/2, 530);
-  c.fillStyle='#1e293b'; roundRect(c, 24, 588, W-48, 78, 14); c.fill();
+  c.fillStyle='#e2eeff'; roundRect(c, 24, 588, W-48, 78, 14); c.fill();
   c.textAlign='left';
-  c.fillStyle='#64748b'; c.font='bold 15px Segoe UI'; c.fillText('A SEGUIR', 44, 616);
-  c.fillStyle='#ffffff'; c.font='bold 22px Segoe UI';
+  c.fillStyle='#475569'; c.font='bold 15px Segoe UI'; c.fillText('A SEGUIR', 44, 616);
+  c.fillStyle='#1e293b'; c.font='bold 22px Segoe UI';
   c.fillText('Remada Sentada — Série ' + (serie+1) + ' de 3', 44, 646);
   c.fillStyle='#f97316'; roundRect(c, 24, 690, W-48, 86, 16); c.fill();
   c.textAlign='center'; c.fillStyle='#ffffff'; c.font='bold 26px Segoe UI';
@@ -554,33 +554,33 @@ function drawRest(){
 // ── TELA: TREINO CONCLUÍDO ──
 function drawConclusion(){
   const c=sctx,W=600,H=800;
-  c.fillStyle='#0f172a'; c.fillRect(0,0,W,H);
-  c.fillStyle='#5b21b6'; c.fillRect(0,0,W,104);
+  c.fillStyle='#faf5ff'; c.fillRect(0,0,W,H);
+  c.fillStyle='#ede9fe'; c.fillRect(0,0,W,104);
   c.textAlign='left';
-  c.fillStyle='#ffffff'; c.font='bold 27px Segoe UI'; c.fillText('Treino concluído', 26, 50);
-  c.fillStyle='#ddd6fe'; c.font='18px Segoe UI'; c.fillText('Remada Sentada · 3 séries', 26, 82);
+  c.fillStyle='#5b21b6'; c.font='bold 27px Segoe UI'; c.fillText('Treino concluído', 26, 50);
+  c.fillStyle='#7c3aed'; c.font='18px Segoe UI'; c.fillText('Remada Sentada · 3 séries', 26, 82);
   c.textAlign='center';
   c.font='84px Segoe UI'; c.fillText('🏆', W/2, 212);
-  c.fillStyle='#ffffff'; c.font='bold 30px Segoe UI'; c.fillText('Parabéns, Ana! 👏', W/2, 268);
-  c.fillStyle='#94a3b8'; c.font='19px Segoe UI';
+  c.fillStyle='#0f172a'; c.font='bold 30px Segoe UI'; c.fillText('Parabéns, Ana! 👏', W/2, 268);
+  c.fillStyle='#475569'; c.font='19px Segoe UI';
   c.fillText('Você completou o exercício do dia.', W/2, 300);
   const stats=[['18','MIN'],['3','SÉRIES'],['96','KCAL']];
   let sx=24;
   for(const [v,l] of stats){
-    c.fillStyle='#1e293b'; roundRect(c,sx,328,170,118,16); c.fill();
+    c.fillStyle='#ede9fe'; roundRect(c,sx,328,170,118,16); c.fill();
     c.textAlign='center';
     c.fillStyle='#a855f7'; c.font='bold 54px Segoe UI'; c.fillText(v, sx+85, 396);
-    c.fillStyle='#64748b'; c.font='bold 16px Segoe UI'; c.fillText(l, sx+85, 426);
+    c.fillStyle='#475569'; c.font='bold 16px Segoe UI'; c.fillText(l, sx+85, 426);
     sx+=191;
   }
   c.textAlign='left';
-  c.fillStyle='#64748b'; c.font='bold 15px Segoe UI'; c.fillText('CONQUISTAS', 28, 490);
+  c.fillStyle='#475569'; c.font='bold 15px Segoe UI'; c.fillText('CONQUISTAS', 28, 490);
   const ach=[['🔥','3 dias seguidos de treino'],['💪','Postura perfeita na série final']];
   let ay=506;
   for(const [ic,tx] of ach){
     c.fillStyle='rgba(168,85,247,0.12)'; roundRect(c,24,ay,W-48,62,12); c.fill();
-    c.textAlign='left'; c.font='26px Segoe UI'; c.fillStyle='#ffffff'; c.fillText(ic, 46, ay+40);
-    c.fillStyle='#ddd6fe'; c.font='19px Segoe UI'; c.fillText(tx, 92, ay+39);
+    c.textAlign='left'; c.font='26px Segoe UI'; c.fillStyle='#5b21b6'; c.fillText(ic, 46, ay+40);
+    c.fillStyle='#5b21b6'; c.font='19px Segoe UI'; c.fillText(tx, 92, ay+39);
     ay+=74;
   }
   c.fillStyle='#f97316'; roundRect(c,24,690,W-48,86,16); c.fill();
@@ -602,12 +602,12 @@ device.add(screen);
 
 // — Faixa de LED (acima da tela, sem cobri-la) —
 const ledMat = new THREE.MeshStandardMaterial({
-  color:0x22c55e, emissive:0x22c55e, emissiveIntensity:1.6, roughness:0.4
+  color:0x22c55e, emissive:0x22c55e, emissiveIntensity:3.0, roughness:0.3
 });
-const led = box(0.30, 0.022, 0.02, ledMat, 0, 0.218, DD/2 - 0.003);
+const led = box(0.30, 0.022, 0.014, ledMat, 0, 0.218, DD/2 + 0.012);
 device.add(led);
-const ledGlow = new THREE.PointLight(0x22c55e, 0.6, 1.8);
-ledGlow.position.set(0, DH/2 + 0.1, 0.3);
+const ledGlow = new THREE.PointLight(0x22c55e, 1.2, 1.2);
+ledGlow.position.set(0, 0.218, DD/2 + 0.06);
 device.add(ledGlow);
 
 // — Câmera / sensor no topo —
@@ -617,7 +617,8 @@ device.add(cyl(0.016,0.016,0.016,
 
 // — Botões físicos laterais —
 for (let i=0;i<3;i++) device.add(box(0.024, 0.075, 0.04, matDark, DW/2, 0.11 - i*0.115, 0));
-device.add(box(0.024, 0.12, 0.044, matOrange, -DW/2, 0, 0));
+const homeBtn3D = box(0.024, 0.12, 0.044, matOrange, -DW/2, 0, 0);
+device.add(homeBtn3D);
 
 // — Alto-falante (abaixo da tela) —
 device.add(box(0.22, 0.03, 0.024,
@@ -967,6 +968,12 @@ renderer.domElement.addEventListener('pointermove', e => {
 });
 renderer.domElement.addEventListener('click', e => {
   setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  // botão laranja físico — Home/reiniciar
+  if (raycaster.intersectObject(homeBtn3D, false).length){
+    restartDemo();
+    return;
+  }
   const uv = screenUV();
   if (!uv) return;
   const b = btnAt(uv);
@@ -989,7 +996,7 @@ function openMirror(){
   const d = mirrorWin.document;
   d.title = 'SHAPE FitGuide — Tela do App';
   d.body.innerHTML = '';
-  d.body.style.cssText = 'margin:0;height:100vh;background:#0b1120;display:flex;'+
+  d.body.style.cssText = 'margin:0;height:100vh;background:#e8eef5;display:flex;'+
     'flex-direction:column;align-items:center;justify-content:center;'+
     'font-family:Segoe UI,Arial,sans-serif;';
   const cv = d.createElement('canvas');
@@ -1000,7 +1007,7 @@ function openMirror(){
   const cap = d.createElement('p');
   cap.textContent = 'Tela do app — interativa e sincronizada com a simulação 3D. '+
     'Clique nos botões aqui ou na máquina 3D.';
-  cap.style.cssText = 'color:#64748b;font-size:12px;margin:14px 18px 0;'+
+  cap.style.cssText = 'color:#475569;font-size:12px;margin:14px 18px 0;'+
     'text-align:center;max-width:520px;';
   d.body.appendChild(cap);
   mirrorCtx = cv.getContext('2d');
